@@ -1,0 +1,339 @@
+﻿from __future__ import annotations
+
+import inspect
+import json
+import sys
+import traceback
+from datetime import datetime
+from pathlib import Path
+
+import streamlit as st
+
+
+ROOT = Path(r"C:\Sistema Jarvis")
+PROJECT = ROOT / "jarvis-ai-assistant-main"
+VOICE_FILE = PROJECT / "engine" / "voice_advanced_ai.py"
+LOG_DIR = ROOT / "python_ecosystem" / "logs" / "jarvis_chat"
+
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+AGENTS = [
+    "organizer_agent",
+    "research_agent",
+    "code_agent",
+    "multi_agent_collab",
+]
+
+
+@st.cache_resource
+def load_jarvis():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "jarvis_voice_runtime",
+        str(VOICE_FILE),
+    )
+
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Não foi possível carregar VoiceAdvancedAI.")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    cls = getattr(module, "VoiceAdvancedAI", None)
+
+    if cls is None:
+        raise RuntimeError("Classe VoiceAdvancedAI não encontrada.")
+
+    instance = cls()
+
+    return module, instance
+
+
+def call_agent(instance, name, message):
+    target = getattr(instance, name, None)
+
+    if not callable(target):
+        return {
+            "agent": name,
+            "status": "UNAVAILABLE",
+            "response": None,
+        }
+
+    try:
+        signature = inspect.signature(target)
+        positional = [
+            p
+            for p in signature.parameters.values()
+            if p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        ]
+
+        if positional:
+            result = target(message)
+        else:
+            result = target()
+
+        if inspect.isawaitable(result):
+            import asyncio
+            result = asyncio.run(result)
+
+        return {
+            "agent": name,
+            "status": "OK",
+            "response": str(result),
+        }
+
+    except Exception as exc:
+        return {
+            "agent": name,
+            "status": "ERROR",
+            "response": None,
+            "error": f"{type(exc).__name__}: {exc}",
+            "traceback": traceback.format_exc(),
+        }
+
+
+def save_event(event):
+    stamp = datetime.now().strftime("%Y%m%d")
+
+    path = LOG_DIR / f"chat_{stamp}.jsonl"
+
+    with path.open(
+        "a",
+        encoding="utf-8",
+    ) as f:
+        f.write(
+            json.dumps(
+                event,
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+
+
+st.set_page_config(
+    page_title="JARVIS",
+    page_icon="🤖",
+    layout="wide",
+)
+
+st.title("🤖 JARVIS")
+st.caption(
+    "Interface local de conversa com os agentes do Jarvis"
+)
+
+with st.sidebar:
+    st.subheader("Runtime")
+
+    st.write(
+        f"Python: `{sys.version.split()[0]}`"
+    )
+
+    st.write(
+        f"Projeto: `{PROJECT}`"
+    )
+
+    st.write(
+        f"Arquivo de agentes: `{VOICE_FILE}`"
+    )
+
+    st.divider()
+
+    st.subheader("Agentes")
+
+    for agent in AGENTS:
+        st.write(f"• {agent}")
+
+    st.divider()
+
+    if st.button("Limpar conversa"):
+        st.session_state.messages = []
+        st.rerun()
+
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+
+for message in st.session_state.messages:
+
+    with st.chat_message(
+        message["role"],
+        avatar=message.get("avatar"),
+    ):
+        st.markdown(
+            message["content"]
+        )
+
+        if message.get("agent"):
+            st.caption(
+                f"Agente: {message['agent']}"
+            )
+
+
+prompt = st.chat_input(
+    "Fale com o Jarvis..."
+)
+
+if prompt:
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": prompt,
+            "avatar": "👤",
+        }
+    )
+
+    with st.chat_message(
+        "user",
+        avatar="👤",
+    ):
+        st.markdown(prompt)
+
+    with st.chat_message(
+        "assistant",
+        avatar="🤖",
+    ):
+        status_box = st.status(
+            "Jarvis está processando...",
+            expanded=True,
+        )
+
+        try:
+
+            _, jarvis = load_jarvis()
+
+            # Primeiro passa pelo organizador.
+            organizer = call_agent(
+                jarvis,
+                "organizer_agent",
+                prompt,
+            )
+
+            status_box.write(
+                f"Organizer: {organizer['status']}"
+            )
+
+            # Depois pesquisa.
+            research = call_agent(
+                jarvis,
+                "research_agent",
+                prompt,
+            )
+
+            status_box.write(
+                f"Research: {research['status']}"
+            )
+
+            # Depois código/análise.
+            code = call_agent(
+                jarvis,
+                "code_agent",
+                prompt,
+            )
+
+            status_box.write(
+                f"Code: {code['status']}"
+            )
+
+            # Por fim colaboração.
+            collaboration = call_agent(
+                jarvis,
+                "multi_agent_collab",
+                prompt,
+            )
+
+            status_box.write(
+                f"Collaboration: {collaboration['status']}"
+            )
+
+            status_box.update(
+                label="Jarvis concluiu o processamento",
+                state="complete",
+                expanded=False,
+            )
+
+            results = [
+                organizer,
+                research,
+                code,
+                collaboration,
+            ]
+
+            successful = [
+                r
+                for r in results
+                if r["status"] == "OK"
+            ]
+
+            sections = []
+
+            for item in successful:
+
+                response = item.get(
+                    "response"
+                )
+
+                if response:
+                    sections.append(
+                        f"**{item['agent']}**\n\n{response}"
+                    )
+
+            if sections:
+                answer = "\n\n---\n\n".join(
+                    sections
+                )
+            else:
+                answer = (
+                    "Os agentes foram carregados, "
+                    "mas nenhum retornou conteúdo "
+                    "conversacional nesta solicitação."
+                )
+
+            st.markdown(answer)
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "avatar": "🤖",
+                    "agent": "multi-agent",
+                }
+            )
+
+            save_event(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "user": prompt,
+                    "results": results,
+                }
+            )
+
+        except Exception as exc:
+
+            status_box.update(
+                label="Erro no processamento",
+                state="error",
+                expanded=True,
+            )
+
+            error = (
+                f"{type(exc).__name__}: {exc}"
+            )
+
+            st.error(error)
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        "Falha ao processar a mensagem:\n\n"
+                        + error
+                    ),
+                    "avatar": "⚠️",
+                }
+            )
