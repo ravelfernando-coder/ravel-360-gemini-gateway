@@ -1,0 +1,18 @@
+{
+  "name": "ravel360-enterprise-os",
+  "version": "50.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js",
+    "test:persistence": "\"C:\\Progra~1\\Git\\bin\\bash.exe\" test/persistence_resilience.sh",
+    "test:security": "\"C:\\Progra~1\\Git\\bin\\bash.exe\" test/security_redteam.sh",
+    "test:structure": "\"C:\\Progra~1\\Git\\bin\\bash.exe\" test/release_structure.sh",
+    "test:all": "\"C:\\Progra~1\\Git\\bin\\bash.exe\" test/all.sh",
+    "check": "node --check server.js",
+    "test:operational": "node test/operational_readiness_windows.js"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
+  }
+}
