@@ -11,10 +11,11 @@ Sincronização da identidade criptográfica do runtime local com o repositório
 - AI Provider Mesh: `EBFB58FAF34D5AB9C726372732E29482A7E22F520C95B16178A85F185149AFC2`
 - Specialist Capability Bridge: `56BC8234675016477B952907CEDC72001D48E181ED4FD74B1D4FF54E2C676781`
 - Motor fiscal legado: `F47A7A16DCBB9DCEA9ED5418EA04D230A11C1DDF64491DC6D66D3F865F274FAE`
-- Motor fiscal completo: `F071B59623AA90F3876B80D6D1268A7333A81FF2A6107A25EC5E2A9758ACFEC1`
+- Motor fiscal completo atual: `34E98DDB10AA35643F9DE6FCA4CF14DD4D4EE658A5A5EBF52733BA7E93A1716F`
+- Laudo interface atual: `40F47BB64C28B76752AB652A60EE3329FE6635E0C491BB4A8DA04145605B9B02`
 
 ## Estado da identidade
-Os hashes representam o estado atual dos arquivos indicados. O Agent Hub e os motores fiscais possuem alterações cirúrgicas posteriores ao commit-base; portanto, estes hashes não devem ser interpretados como estando contidos integralmente no commit-base.
+Os hashes representam o estado observado dos arquivos indicados no runtime local nesta rodada. O Agent Hub e os motores fiscais possuem alterações cirúrgicas posteriores ao commit-base; portanto, estes hashes não devem ser interpretados como estando contidos integralmente no commit-base.
 
 ## External target
 Repositório seguro: `ravelfernando-coder/ravel-360-gemini-gateway`.
