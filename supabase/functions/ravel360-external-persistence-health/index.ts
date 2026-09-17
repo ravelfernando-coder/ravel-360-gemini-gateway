@@ -1,3 +1,4 @@
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 Deno.serve(async (req: Request) => {
@@ -57,7 +58,12 @@ Deno.serve(async (req: Request) => {
       service: 'ravel360-external-persistence-health',
       database: 'reachable',
       latest_schema_migration: data?.[0]?.version ?? null,
-      latency_ms: Math.round(performance.now() - started)
+      latency_ms: Math.round(performance.now() - started),
+      runtime_dependencies: {
+        supabase_db_url: Boolean(Deno.env.get('SUPABASE_DB_URL')),
+        gemini_api_key: Boolean(Deno.env.get('GEMINI_API_KEY')),
+        gateway_secret: Boolean(Deno.env.get('RAVEL_GATEWAY_SECRET'))
+      }
     }),
     {
       status: 200,
