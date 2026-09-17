@@ -17,7 +17,8 @@ export default [
         globalThis: 'readonly',
         process: 'readonly',
         setTimeout: 'readonly',
-        URL: 'readonly'
+        URL: 'readonly',
+        URLSearchParams: 'readonly'
       }
     },
     rules: {
