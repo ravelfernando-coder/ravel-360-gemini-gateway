@@ -14,7 +14,9 @@ function main() {
     .filter((file) => /^\d{3}_.+\.sql$/.test(file))
     .sort();
   const versions = files.map((file) => file.slice(0, 3));
-  const expected = Array.from({ length: files.length }, (_, index) => String(index + 1).padStart(3, '0'));
+  const expected = Array.from({ length: files.length }, (_, index) =>
+    String(index + 1).padStart(3, '0')
+  );
   const problems = [];
 
   if (files.length === 0 || expected.some((version, index) => versions[index] !== version)) {
